@@ -1,29 +1,47 @@
+
 use strict;
 use warnings;
-use inc::Module::Install 0.91;
-use Module::Install::AuthorTests;
 
-name 'Resource-Pack';
-all_from 'lib/Resource/Pack.pm';
-license 'perl';
 
-# prereqs
-requires 'Moose'                       => 1.01;
-requires 'MooseX::Params::Validate'    => 0.14;
-requires 'MooseX::Role::Parameterized' => 0.18;
-requires 'Class::Inspector'            => 1.24;
-requires 'MooseX::Types::Path::Class'  => 0.05;
-requires 'File::Copy::Recursive'       => 0.38;
-requires 'Path::Class'                 => 0;
-requires 'LWP::UserAgent'              => 0;
-requires 'URI'                         => 0;
 
-# things the tests need
-build_requires 'Test::More'      => '0.62';
-build_requires 'Test::Exception' => '0.21';
+use ExtUtils::MakeMaker 6.31;
 
-tests('t/*.t');
-author_tests('t/author/*.t');
 
-WriteAll();
+
+my %WriteMakefileArgs = (
+                       'test' => {
+                                   'TESTS' => 't/*.t'
+                                 },
+                       'NAME' => 'Resource::Pack',
+                       'DISTNAME' => 'Resource-Pack',
+                       'CONFIGURE_REQUIRES' => {
+                                                 'ExtUtils::MakeMaker' => '6.31'
+                                               },
+                       'AUTHOR' => 'Stevan Little <stevan.little@iinteractive.com>, Jesse Luehrs <doy at tozt dot net>',
+                       'BUILD_REQUIRES' => {},
+                       'ABSTRACT' => 'tools for managing application resources',
+                       'EXE_FILES' => [],
+                       'VERSION' => '0.02',
+                       'PREREQ_PM' => {
+                                        'MooseX::Types::Path::Class' => '0.05',
+                                        'LWP::UserAgent' => '0',
+                                        'Test::Exception' => '0.21',
+                                        'File::Copy::Recursive' => '0.38',
+                                        'Bread::Board' => '0.12',
+                                        'Moose' => '1.01',
+                                        'MooseX::Types::URI' => '0'
+                                      },
+                       'LICENSE' => 'perl'
+                     );
+
+
+delete $WriteMakefileArgs{BUILD_REQUIRES}
+  unless eval { ExtUtils::MakeMaker->VERSION(6.56) };
+
+delete $WriteMakefileArgs{CONFIGURE_REQUIRES}
+  unless eval { ExtUtils::MakeMaker->VERSION(6.52) };
+
+WriteMakefile(%WriteMakefileArgs);
+
+
 

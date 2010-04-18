@@ -1,124 +1,128 @@
 package Resource::Pack::File;
-use MooseX::Role::Parameterized;
-use MooseX::Params::Validate;
-
-our $VERSION   = '0.01';
-our $AUTHORITY = 'cpan:STEVAN';
-
-use Resource::Pack::Types;
-
-parameter 'extension' => (
-    isa     => 'Str',
-    default => 'txt'
-);
-
-role {
-    my $ext = (shift)->extension;
-
-    with 'Resource::Pack::Core',
-         'Resource::Pack::Util::FileSys';
-
-    has 'file' => (
-        is       => 'ro',
-        isa      => 'Path::Class::File',
-        lazy     => 1,
-        default  => sub {
-            my $self = shift;
-            $self->class_file->parent->file(
-                 $self->local_class_name
-                 . '.'
-                 . $self->extension
-            )
-        }
-    );
-
-    method 'extension' => sub { $ext };
-};
-
-sub copy {
-    my $self = shift;
-    my ($to, $include_dependencies) = validated_list(\@_,
-        to           => { isa => 'Path::Class::Dir', coerce => 1 },
-        include_deps => { isa => 'Bool', optional => 1 },
-    );
-
-    $self->_copy_entity_recursively( $self->file, $to );
-
-    if ( $include_dependencies ) {
-        # XXX
-        # should we check to make sure
-        # that it can('copy'). And then
-        # should we die if not? or ignore
-        # it and go to the next?
-        # - SL
-        $_->copy( @_ ) foreach $self->dependencies;
-    }
+BEGIN {
+  $Resource::Pack::File::VERSION = '0.02';
 }
+use Moose;
+use MooseX::Types::Path::Class qw(File Dir);
 
-no Moose::Role; 1;
-
-__END__
-
-=pod
+with 'Resource::Pack::Installable',
+     'Bread::Board::Service',
+     'Bread::Board::Service::WithDependencies';
 
 =head1 NAME
 
-Resource::Pack::File
+Resource::Pack::File - a file resource
+
+=head1 VERSION
+
+version 0.02
 
 =head1 SYNOPSIS
 
-  use Resource::Pack::File;
+    my $file = Resource::Pack::File->new(
+        name         => 'test',
+        file         => 'test.txt',
+        install_from => data_dir,
+    );
+    $file->install;
 
 =head1 DESCRIPTION
 
-This is parameterized role that can be passed the
-extension of the file it should look for.
+This class represents a file to be installed. It can also be added as a
+subresource to a L<Resource::Pack::Resource>. This class consumes the
+L<Resource::Pack::Installable>, L<Bread::Board::Service>, and
+L<Bread::Board::Service::WithDependencies> roles.
 
-=head1 ROLE PARAMETERS
-
-=over 4
-
-=item B<extension>
-
-Defaults to C<txt>.
-
-=back
+=cut
 
 =head1 ATTRIBUTES
 
-=over 4
+=cut
 
-=item B<file>
+=head2 file
 
-=back
+Read-only attribute for the source file. Defaults to the service name.
+
+=cut
+
+has file => (
+    is      => 'ro',
+    isa     => File,
+    coerce  => 1,
+    lazy    => 1,
+    default => sub { Path::Class::File->new(shift->name) },
+);
+
+=head2 install_from_dir
+
+Base dir, where C<file> is located. Defaults to the C<install_from_dir> of the
+parent resource. The associated constructor argument is C<install_from>.
+
+=cut
+
+has install_from_dir => (
+    is         => 'rw',
+    isa        => Dir,
+    coerce     => 1,
+    init_arg   => 'install_from',
+    predicate  => 'has_install_from_dir',
+    default    => sub {
+        my $self = shift;
+        if ($self->has_parent && $self->parent->has_install_from_dir) {
+            return $self->parent->install_from_dir;
+        }
+        else {
+            confess "install_from is required for File resources without a container";
+        }
+    },
+);
+
+=head2 install_as
+
+The name to use for the installed file. Defaults to C<file>.
+
+=cut
+
+has install_as => (
+    is      => 'rw',
+    isa     => File,
+    coerce  => 1,
+    lazy    => 1,
+    default => sub { shift->file },
+);
 
 =head1 METHODS
 
-=over 4
+=cut
 
-=item B<extension>
+=head2 install_from_absolute
 
-=item B<copy( to => $dir, ?include_deps => 1|0, )>
+Entire path to the source file (concatenation of C<install_from_dir> and
+C<file>).
 
-=back
+=cut
 
-=head1 BUGS
+sub install_from_absolute {
+    my $self = shift;
+    $self->install_from_dir->file($self->file);
+}
 
-All complex software has bugs lurking in it, and this module is no
-exception. If you find a bug please either email me, or add the bug
-to cpan-RT.
+__PACKAGE__->meta->make_immutable;
+no Moose;
 
-=head1 AUTHOR
+=head1 AUTHORS
 
-Stevan Little E<lt>stevan.little@iinteractive.comE<gt>
+  Stevan Little <stevan.little@iinteractive.com>
+
+  Jesse Luehrs <doy at tozt dot net>
 
 =head1 COPYRIGHT AND LICENSE
 
-Copyright 2010 Infinity Interactive, Inc.
+This software is copyright (c) 2010 Infinity Interactive, Inc.
 
-L<http://www.iinteractive.com>
-
-This library is free software; you can redistribute it and/or modify
-it under the same terms as Perl itself.
+This is free software; you can redistribute it and/or modify it under
+the same terms as perl itself.
 
 =cut
+
+1;

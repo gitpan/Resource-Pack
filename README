@@ -1,37 +1,13 @@
-Resource::Pack version 0.01
-===========================
 
-See the individual module documentation for more information
 
-INSTALLATION
+This archive contains the distribution Resource-Pack,
+version 0.02:
 
-To install this module type the following:
+  tools for managing application resources
 
-   perl Makefile.PL
-   make
-   make test
-   make install
+This software is copyright (c) 2010 by Infinity Interactive, Inc.
 
-DEPENDENCIES
+This is free software; you can redistribute it and/or modify it under
+the same terms as the Perl 5 programming language system itself.
 
-This module requires these other modules and libraries:
-
-  Moose
-  MooseX::Params::Validate
-  MooseX::Role::Parameterized
-  Class::Inspector
-  Path::Class
-  MooseX::Types::Path::Class
-  File::Copy::Recursive
-  LWP::UserAgent
-  URI
-
-COPYRIGHT AND LICENCE
-
-Copyright (C) 2010 Infinity Interactive, Inc.
-
-http://www.iinteractive.com
-
-This library is free software; you can redistribute it and/or modify
-it under the same terms as Perl itself.
 

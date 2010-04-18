@@ -1,104 +1,128 @@
 package Resource::Pack::Dir;
-use Moose::Role;
-use MooseX::Params::Validate;
-
-our $VERSION   = '0.01';
-our $AUTHORITY = 'cpan:STEVAN';
-
-use Resource::Pack::Types;
-
-with 'Resource::Pack::Core',
-     'Resource::Pack::Util::FileSys';
-
-has 'dir' => (
-    is       => 'ro',
-    isa      => 'Path::Class::Dir',
-    lazy     => 1,
-    default  => sub {
-        my $self = shift;
-        $self->class_file->parent->subdir(
-             $self->local_class_name
-        )
-    }
-);
-
-sub copy {
-    my $self = shift;
-    my ($to, $include_dependencies, $preserve_dir) = validated_list(\@_,
-        to           => { isa => 'Path::Class::Dir', coerce => 1 },
-        include_deps => { isa => 'Bool', optional => 1 },
-        preserve_dir => { isa => 'Bool', optional => 1 },
-    );
-
-    my @to_copy = $preserve_dir ? $self->dir : $self->dir->children;
-
-    $self->_copy_entity_recursively( $_, $to ) for @to_copy;
-
-    if ( $include_dependencies ) {
-        # XXX
-        # should we check to make sure
-        # that it can('copy'). And then
-        # should we die if not? or ignore
-        # it and go to the next?
-        # - SL
-        $_->copy( @_ ) foreach $self->dependencies;
-    }
+BEGIN {
+  $Resource::Pack::Dir::VERSION = '0.02';
 }
+use Moose;
+use MooseX::Types::Path::Class qw(Dir);
 
-no Moose::Role; 1;
-
-__END__
-
-=pod
+with 'Resource::Pack::Installable',
+     'Bread::Board::Service',
+     'Bread::Board::Service::WithDependencies';
 
 =head1 NAME
 
-Resource::Pack::Dir - A Moosey solution to this problem
+Resource::Pack::Dir - a directory resource
+
+=head1 VERSION
+
+version 0.02
 
 =head1 SYNOPSIS
 
-  use Resource::Pack::Dir;
+    my $dir = Resource::Pack::Dir->new(
+        name         => 'test',
+        dir          => 'css',
+        install_from => data_dir,
+    );
+    $dir->install;
 
 =head1 DESCRIPTION
 
-This is a role which tells Resource::Pack to look in the directory
-which matches the full class name. This means that given the
-class namespace B<Foo::Bar::Baz.pm> it will look in the directory
-F<Foo/Bar/Baz/*> for the resources.
+This class represents a directory to be installed. It can also be added as a
+subresource to a L<Resource::Pack::Resource>. This class consumes the
+L<Resource::Pack::Installable>, L<Bread::Board::Service>, and
+L<Bread::Board::Service::WithDependencies> roles.
+
+=cut
 
 =head1 ATTRIBUTES
 
-=over 4
+=cut
 
-=item B<dir>
+=head2 dir
 
-=back
+Read-only attribute for the source directory. Defaults to the service name.
+
+=cut
+
+has dir => (
+    is      => 'ro',
+    isa     => Dir,
+    coerce  => 1,
+    lazy    => 1,
+    default => sub { Path::Class::Dir->new(shift->name) },
+);
+
+=head2 install_from_dir
+
+Base dir, where C<dir> is located. Defaults to the C<install_from_dir> of the
+parent resource. The associated constructor argument is C<install_from>.
+
+=cut
+
+has install_from_dir => (
+    is         => 'rw',
+    isa        => Dir,
+    coerce     => 1,
+    init_arg   => 'install_from',
+    predicate  => 'has_install_from_dir',
+    default    => sub {
+        my $self = shift;
+        if ($self->has_parent && $self->parent->has_install_from_dir) {
+            return $self->parent->install_from_dir;
+        }
+        else {
+            confess "install_from is required for Dir resources without a container";
+        }
+    },
+);
+
+=head2 install_as
+
+The name to use for the installed directory. Defaults to C<dir>.
+
+=cut
+
+has install_as => (
+    is      => 'rw',
+    isa     => Dir,
+    coerce  => 1,
+    lazy    => 1,
+    default => sub { shift->dir },
+);
 
 =head1 METHODS
 
-=over 4
+=cut
 
-=item B<copy( to => $dir, ?include_deps => 1|0, ?preserve_dir => 1|0 )>
+=head2 install_from_absolute
 
-=back
+Entire path to the source directory (concatenation of C<install_from_dir> and
+C<dir>).
 
-=head1 BUGS
+=cut
 
-All complex software has bugs lurking in it, and this module is no
-exception. If you find a bug please either email me, or add the bug
-to cpan-RT.
+sub install_from_absolute {
+    my $self = shift;
+    $self->install_from_dir->subdir($self->dir);
+}
 
-=head1 AUTHOR
+__PACKAGE__->meta->make_immutable;
+no Moose;
 
-Stevan Little E<lt>stevan.little@iinteractive.comE<gt>
+=head1 AUTHORS
+
+  Stevan Little <stevan.little@iinteractive.com>
+
+  Jesse Luehrs <doy at tozt dot net>
 
 =head1 COPYRIGHT AND LICENSE
 
-Copyright 2010 Infinity Interactive, Inc.
+This software is copyright (c) 2010 Infinity Interactive, Inc.
 
-L<http://www.iinteractive.com>
-
-This library is free software; you can redistribute it and/or modify
-it under the same terms as Perl itself.
+This is free software; you can redistribute it and/or modify it under
+the same terms as perl itself.
 
 =cut
+
+1;

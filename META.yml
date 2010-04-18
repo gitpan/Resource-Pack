@@ -1,34 +1,24 @@
 ---
-abstract: 'A set of resource management roles that use the CPAN toolchain'
+abstract: 'tools for managing application resources'
 author:
   - 'Stevan Little <stevan.little@iinteractive.com>'
-build_requires:
-  ExtUtils::MakeMaker: 6.42
-  Test::Exception: 0.21
-  Test::More: 0.62
+  - 'Jesse Luehrs <doy at tozt dot net>'
+build_requires: {}
 configure_requires:
-  ExtUtils::MakeMaker: 6.42
-distribution_type: module
-generated_by: 'Module::Install version 0.91'
+  ExtUtils::MakeMaker: 6.31
+generated_by: 'Dist::Zilla version 2.101040'
 license: perl
 meta-spec:
   url: http://module-build.sourceforge.net/META-spec-v1.4.html
   version: 1.4
 name: Resource-Pack
-no_index:
-  directory:
-    - inc
-    - t
+recommends: {}
 requires:
-  Class::Inspector: 1.24
+  Bread::Board: 0.12
   File::Copy::Recursive: 0.38
   LWP::UserAgent: 0
   Moose: 1.01
-  MooseX::Params::Validate: 0.14
-  MooseX::Role::Parameterized: 0.18
   MooseX::Types::Path::Class: 0.05
-  Path::Class: 0
-  URI: 0
-resources:
-  license: http://dev.perl.org/licenses/
-version: 0.01
+  MooseX::Types::URI: 0
+  Test::Exception: 0.21
+version: 0.02

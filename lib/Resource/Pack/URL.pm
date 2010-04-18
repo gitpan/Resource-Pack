@@ -1,128 +1,127 @@
 package Resource::Pack::URL;
-use MooseX::Role::Parameterized;
-use MooseX::Params::Validate;
+BEGIN {
+  $Resource::Pack::URL::VERSION = '0.02';
+}
+use Moose;
+use MooseX::Types::Path::Class qw(File);
+use MooseX::Types::URI qw(Uri);
 
 use LWP::UserAgent;
-use URI;
 
-our $VERSION   = '0.01';
-our $AUTHORITY = 'cpan:STEVAN';
-
-use Resource::Pack::Types;
-
-parameter 'url' => (
-    isa      => 'Str',
-    required => 1
-);
-
-parameter 'sub_dir' => ( isa => 'Str' );
-
-role {
-    my $param = shift;
-
-    my $url     = URI->new( $param->url );
-    my $sub_dir = $param->sub_dir;
-
-    with 'Resource::Pack::Core';
-
-    method 'url'         => sub { $url };
-    method 'has_sub_dir' => sub { defined $sub_dir ? 1 : 0 };
-    method 'sub_dir'     => sub { $sub_dir };
-};
-
-sub copy {
-    my $self = shift;
-    my ($to, $include_dependencies) = validated_list(\@_,
-        to           => { isa => 'Path::Class::Dir', coerce => 1 },
-        include_deps => { isa => 'Bool', optional => 1 },
-    );
-
-    my $response = LWP::UserAgent->new->get( $self->url->as_string );
-
-    if ($response->is_success) {
-        if ($self->has_sub_dir) {
-            $to = $to->subdir( $self->sub_dir );
-            $to->mkpath unless -e $to;
-        }
-        my $fh = $to->file( ($self->url->path_segments)[-1] )->openw;
-        $fh->print( $response->content );
-        $fh->close;
-    }
-    else {
-        confess "Could not fetch file because : " . $response->status_line;
-    }
-
-    if ( $include_dependencies ) {
-        # XXX
-        # should we check to make sure
-        # that it can('copy'). And then
-        # should we die if not? or ignore
-        # it and go to the next?
-        # - SL
-        $_->copy( @_ ) foreach $self->dependencies;
-    }
-}
-
-no Moose::Role; 1;
-
-__END__
-
-=pod
+with 'Resource::Pack::Installable',
+     'Bread::Board::Service',
+     'Bread::Board::Service::WithDependencies';
 
 =head1 NAME
 
-Resource::Pack::URL
+Resource::Pack::URL - a URL resource
+
+=head1 VERSION
+
+version 0.02
 
 =head1 SYNOPSIS
 
-  use Resource::Pack::URL;
+    my $url = Resource::Pack::URL->new(
+        name => 'jquery',
+        url  => 'http://ajax.googleapis.com/ajax/libs/jquery/1.4.2/jquery.min.js',
+    );
+    $url->install;
 
 =head1 DESCRIPTION
 
-This is a parameterized role which can be used to specify a
-resource that is out on the internet.
+This class represents a URL to be downloaded and installed. It can also be
+added as a subresource to a L<Resource::Pack::Resource>. This class consumes
+the L<Resource::Pack::Installable>, L<Bread::Board::Service>, and
+L<Bread::Board::Service::WithDependencies> roles.
 
-=head1 ROLE PARAMETERS
+=cut
 
-=over 4
+=head1 ATTRIBUTES
 
-=item B<url>
+=cut
 
-=item B<sub_dir>
+=head2 url
 
-=back
+Required, read-only attribute for the source URL.
+
+=cut
+
+has url => (
+    is       => 'ro',
+    isa      => Uri,
+    coerce   => 1,
+    required => 1,
+);
+
+=head2 install_as
+
+The name to use for the installed file. Defaults to the filename portion of the
+C<url> attribute.
+
+=cut
+
+has install_as => (
+    is      => 'rw',
+    isa     => File,
+    coerce  => 1,
+    lazy    => 1,
+    default => sub { (shift->url->path_segments)[-1] },
+);
 
 =head1 METHODS
 
-=over 4
+=cut
 
-=item B<url>
+=head2 install_from_absolute
 
-=item B<has_sub_dir>
+Returns the entire source url.
 
-=item B<sub_dir>
+=cut
 
-=item B<copy( to => $dir, ?include_deps => 1|0, )>
+sub install_from_absolute {
+    my $self = shift;
+    $self->url;
+}
 
-=back
+=head2 install
 
-=head1 BUGS
+Overridden to handle the downloading of the source file, before installing it.
 
-All complex software has bugs lurking in it, and this module is no
-exception. If you find a bug please either email me, or add the bug
-to cpan-RT.
+=cut
 
-=head1 AUTHOR
+sub install {
+    my $self = shift;
+    my $response = LWP::UserAgent->new->get($self->url->as_string);
+    if ($response->is_success) {
+        my $to = $self->install_to_absolute;
+        $to->parent->mkpath unless -e $to->parent;
+        my $fh = $to->openw;
+        $fh->print($response->content);
+        $fh->close;
+    }
+    else {
+        confess "Could not fetch file " . $self->url->as_string
+              . " because: " . $response->status_line;
+    }
+}
 
-Stevan Little E<lt>stevan.little@iinteractive.comE<gt>
+__PACKAGE__->meta->make_immutable;
+no Moose;
+
+=head1 AUTHORS
+
+  Stevan Little <stevan.little@iinteractive.com>
+
+  Jesse Luehrs <doy at tozt dot net>
 
 =head1 COPYRIGHT AND LICENSE
 
-Copyright 2010 Infinity Interactive, Inc.
+This software is copyright (c) 2010 Infinity Interactive, Inc.
 
-L<http://www.iinteractive.com>
-
-This library is free software; you can redistribute it and/or modify
-it under the same terms as Perl itself.
+This is free software; you can redistribute it and/or modify it under
+the same terms as perl itself.
 
 =cut
+
+1;
