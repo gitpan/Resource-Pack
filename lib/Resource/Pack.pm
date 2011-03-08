@@ -1,8 +1,9 @@
 package Resource::Pack;
 BEGIN {
-  $Resource::Pack::VERSION = '0.02';
+  $Resource::Pack::VERSION = '0.03';
 }
 use Moose::Exporter;
+# ABSTRACT: tools for managing application resources
 
 use Bread::Board;
 use Carp qw(confess);
@@ -13,13 +14,107 @@ use Resource::Pack::File;
 use Resource::Pack::Resource;
 use Resource::Pack::URL;
 
+
+
+our $CC;
+
+
+sub resource ($;$$) {
+    my $name = shift;
+    my $c;
+    my $name_is_resource = blessed($name)
+                        && $name->isa('Resource::Pack::Resource');
+    if (@_ == 0) {
+        return $name if $name_is_resource;
+        return Resource::Pack::Resource->new(name => $name);
+    }
+    elsif (@_ == 1) {
+        $c = $name_is_resource
+            ? $name
+            : Resource::Pack::Resource->new(name => $name);
+    }
+    else {
+        confess "Parameterized resources are not currently supported";
+    }
+    my $body = shift;
+    if (defined $CC) {
+        $CC->add_sub_container($c);
+    }
+    if (defined $body) {
+        local $_  = $c;
+        local $CC = $c;
+        $body->($c);
+    }
+    return $c;
+}
+
+
+sub file ($@) {
+    my $name = shift;
+    unshift @_, 'file' if @_ % 2 == 1;
+    $CC->add_file(@_, name => $name);
+}
+
+
+sub dir ($@) {
+    my $name = shift;
+    unshift @_, 'dir' if @_ % 2 == 1;
+    $CC->add_dir(@_, name => $name);
+}
+
+
+sub url ($@) {
+    my $name = shift;
+    unshift @_, 'url' if @_ % 2 == 1;
+    $CC->add_url(@_, name => $name);
+}
+
+
+sub install_to ($) {
+    $CC->install_to_dir(shift);
+}
+
+
+sub install_from ($) {
+    $CC->install_from_dir(shift);
+}
+
+
+sub install_as ($) {
+    $CC->install_as(shift);
+}
+
+{
+    no warnings 'redefine';
+    sub include ($) {
+        my $file = shift;
+        my $resources = Path::Class::File->new($file)->slurp . ";\n1;";
+        if (!eval $resources) {
+            die "Couldn't compile $file: $@" if $@;
+            die "Unknown error when compiling $file";
+        }
+    }
+}
+
+Moose::Exporter->setup_import_methods(
+    also  => ['Bread::Board'],
+    as_is => [qw(resource file dir url install_to install_from install_as
+                 include)],
+);
+
+
+1;
+
+__END__
+=pod
+
 =head1 NAME
 
 Resource::Pack - tools for managing application resources
 
 =head1 VERSION
 
-version 0.02
+version 0.03
 
 =head1 SYNOPSIS
 
@@ -93,15 +188,9 @@ So, this is all the docs I have for now, but more will come soon. This is an
 early release of this module so it should still be considered experimental and
 so used with caution. As always the best docs are probably the test files.
 
-=cut
-
 =head1 EXPORTS
 
 Resource::Pack exports everything that L<Bread::Board> exports, as well as:
-
-=cut
-
-our $CC;
 
 =head2 resource NAME BODY
 
@@ -109,50 +198,11 @@ Defines a new L<Resource::Pack::Resource> with name NAME, and runs BODY to
 populate it. This works similarly to C<container> in L<Bread::Board>, except
 that it doesn't currently support parameters.
 
-=cut
-
-sub resource ($;$$) {
-    my $name = shift;
-    my $c;
-    my $name_is_resource = blessed($name)
-                        && $name->isa('Resource::Pack::Resource');
-    if (@_ == 0) {
-        return $name if $name_is_resource;
-        return Resource::Pack::Resource->new(name => $name);
-    }
-    elsif (@_ == 1) {
-        $c = $name_is_resource
-            ? $name
-            : Resource::Pack::Resource->new(name => $name);
-    }
-    else {
-        confess "Parameterized resources are not currently supported";
-    }
-    my $body = shift;
-    if (defined $CC) {
-        $CC->add_sub_container($c);
-    }
-    if (defined $body) {
-        local $_  = $c;
-        local $CC = $c;
-        $body->($c);
-    }
-    return $c;
-}
-
 =head2 file NAME PARAMS
 
 Defines a L<Resource::Pack::File> object in the current resource, with the name
 NAME. PARAMS are passed to the Resource::Pack::File constructor, with a default
 parameter of C<file> if only one argument is passed.
-
-=cut
-
-sub file ($@) {
-    my $name = shift;
-    unshift @_, 'file' if @_ % 2 == 1;
-    $CC->add_file(@_, name => $name);
-}
 
 =head2 dir NAME PARAMS
 
@@ -160,75 +210,23 @@ Defines a L<Resource::Pack::Dir> object in the current resource, with the name
 NAME. PARAMS are passed to the Resource::Pack::Dir constructor, with a default
 parameter of C<dir> if only one argument is passed.
 
-=cut
-
-sub dir ($@) {
-    my $name = shift;
-    unshift @_, 'dir' if @_ % 2 == 1;
-    $CC->add_dir(@_, name => $name);
-}
-
 =head2 url
 
 Defines a L<Resource::Pack::URL> object in the current resource, with the name
 NAME. PARAMS are passed to the Resource::Pack::URL constructor, with a default
 parameter of C<url> if only one argument is passed.
 
-=cut
-
-sub url ($@) {
-    my $name = shift;
-    unshift @_, 'url' if @_ % 2 == 1;
-    $CC->add_url(@_, name => $name);
-}
-
 =head2 install_to PATH
 
 Sets the C<install_to> option for the current resource.
-
-=cut
-
-sub install_to ($) {
-    $CC->install_to_dir(shift);
-}
 
 =head2 install_from PATH
 
 Sets the C<install_from> option for the current resource.
 
-=cut
-
-sub install_from ($) {
-    $CC->install_from_dir(shift);
-}
-
 =head2 install_as PATH
 
 Sets the C<install_as> option for the current resource.
-
-=cut
-
-sub install_as ($) {
-    $CC->install_as(shift);
-}
-
-{
-    no warnings 'redefine';
-    sub include ($) {
-        my $file = shift;
-        my $resources = Path::Class::File->new($file)->slurp . ";\n1;";
-        if (!eval $resources) {
-            die "Couldn't compile $file: $@" if $@;
-            die "Unknown error when compiling $file";
-        }
-    }
-}
-
-Moose::Exporter->setup_import_methods(
-    also  => ['Bread::Board'],
-    as_is => [qw(resource file dir url install_to install_from install_as
-                 include)],
-);
 
 =head1 TODO
 
@@ -258,11 +256,23 @@ L<http://rt.cpan.org/NoAuth/ReportBug.html?Queue=Resource-Pack>.
 
 =head1 SEE ALSO
 
+Please see those modules/websites for more information related to this module.
+
+=over 4
+
+=item *
+
 L<JS>
+
+=item *
 
 L<File::ShareDir>
 
+=item *
+
 L<Bread::Board>
+
+=back
 
 =head1 SUPPORT
 
@@ -294,17 +304,24 @@ L<http://search.cpan.org/dist/Resource-Pack>
 
 =head1 AUTHORS
 
-  Stevan Little <stevan.little@iinteractive.com>
+=over 4
 
-  Jesse Luehrs <doy at tozt dot net>
+=item *
+
+Stevan Little <stevan.little@iinteractive.com>
+
+=item *
+
+Jesse Luehrs <doy at tozt dot net>
+
+=back
 
 =head1 COPYRIGHT AND LICENSE
 
-This software is copyright (c) 2010 Infinity Interactive, Inc.
+This software is copyright (c) 2011 by Infinity Interactive, Inc.
 
 This is free software; you can redistribute it and/or modify it under
-the same terms as perl itself.
+the same terms as the Perl 5 programming language system itself.
 
 =cut
 
-1;

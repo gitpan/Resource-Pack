@@ -1,12 +1,38 @@
 package Resource::Pack::FromFile;
 BEGIN {
-  $Resource::Pack::FromFile::VERSION = '0.02';
+  $Resource::Pack::FromFile::VERSION = '0.03';
 }
 use Moose;
 use MooseX::Types::Path::Class qw(File);
 use Resource::Pack;
+# ABSTRACT: easily use external resource description files
 
 extends 'Resource::Pack::Resource';
+
+
+
+has resource_file => (
+    is       => 'ro',
+    isa      => File,
+    coerce   => 1,
+    required => 1,
+);
+
+sub BUILD {
+    my $self = shift;
+    resource $self => as {
+        install_from(Path::Class::File->new($self->resource_file)->parent);
+        include($self->resource_file);
+    };
+}
+
+__PACKAGE__->meta->make_immutable;
+no Moose;
+no Resource::Pack;
+
+
+__END__
+=pod
 
 =head1 NAME
 
@@ -14,7 +40,7 @@ Resource::Pack::FromFile - easily use external resource description files
 
 =head1 VERSION
 
-version 0.02
+version 0.03
 
 =head1 SYNOPSIS
 
@@ -52,51 +78,49 @@ or
 This is a subclass of L<Resource::Pack::Resource>, which handles loading a
 resource definition from a separate file.
 
-=cut
-
 =head1 ATTRIBUTES
-
-=cut
 
 =head2 resource_file
 
 The file to read the resource definition from. The containing directory is used
 as the default for C<install_from>.
 
-=cut
+=for Pod::Coverage BUILD
 
-has resource_file => (
-    is       => 'ro',
-    isa      => File,
-    coerce   => 1,
-    required => 1,
-);
+1;
 
-sub BUILD {
-    my $self = shift;
-    resource $self => as {
-        install_from(Path::Class::File->new($self->resource_file)->parent);
-        include($self->resource_file);
-    };
-}
+=head1 SEE ALSO
 
-__PACKAGE__->meta->make_immutable;
-no Moose;
-no Resource::Pack;
+Please see those modules/websites for more information related to this module.
+
+=over 4
+
+=item *
+
+L<Resource::Pack|Resource::Pack>
+
+=back
 
 =head1 AUTHORS
 
-  Stevan Little <stevan.little@iinteractive.com>
+=over 4
 
-  Jesse Luehrs <doy at tozt dot net>
+=item *
+
+Stevan Little <stevan.little@iinteractive.com>
+
+=item *
+
+Jesse Luehrs <doy at tozt dot net>
+
+=back
 
 =head1 COPYRIGHT AND LICENSE
 
-This software is copyright (c) 2010 Infinity Interactive, Inc.
+This software is copyright (c) 2011 by Infinity Interactive, Inc.
 
 This is free software; you can redistribute it and/or modify it under
-the same terms as perl itself.
+the same terms as the Perl 5 programming language system itself.
 
 =cut
 
-1;

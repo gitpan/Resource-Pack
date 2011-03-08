@@ -1,48 +1,14 @@
 package Resource::Pack::Installable;
 BEGIN {
-  $Resource::Pack::Installable::VERSION = '0.02';
+  $Resource::Pack::Installable::VERSION = '0.03';
 }
 use Moose::Role;
 use MooseX::Types::Path::Class qw(Dir);
+# ABSTRACT: role for installable resources
 
 use File::Copy::Recursive ();
 
-=head1 NAME
 
-Resource::Pack::Installable - role for installable resources
-
-=head1 VERSION
-
-version 0.02
-
-=head1 SYNOPSIS
-
-    package My::New::Resource;
-    use Moose;
-    with 'Resource::Pack::Installable';
-
-=head1 DESCRIPTION
-
-This role implements various common bits of functionality for all installable
-resources.
-
-=cut
-
-=head1 ATTRIBUTES
-
-=cut
-
-=head2 _install_to_dir
-
-This is passed to the constructor as C<install_to>, and holds a path relative
-to the C<_install_to_dir> of its parent, representing the directory to install
-this resource into.
-
-=cut
-
-=head1 METHODS
-
-=cut
 
 has _install_to_dir => (
     is         => 'rw',
@@ -72,16 +38,6 @@ sub _install_to_parts {
     }
 }
 
-=head1 METHODS
-
-=cut
-
-=head2 install_to_dir
-
-Returns the complete directory where this resource will be installed to. Can
-also be used to set the C<_install_to_dir> attribute.
-
-=cut
 
 sub install_to_dir {
     my $self = shift;
@@ -89,11 +45,6 @@ sub install_to_dir {
     return Path::Class::Dir->new($self->_install_to_parts);
 }
 
-=head2 install_to_absolute
-
-Returns the target path that will be installed by this resource.
-
-=cut
 
 sub install_to_absolute {
     my $self = shift;
@@ -106,16 +57,6 @@ sub install_to_absolute {
     return $to;
 }
 
-=head2 install
-
-Default implementation, which copies the file at C<install_from_absolute> to
-C<install_to_absolute>.
-
-After this method is run (either the default implementation or an overridden
-implementation), it will call C<install> on each of the dependencies of this
-resource.
-
-=cut
 
 sub install {
     my $self = shift;
@@ -134,30 +75,100 @@ after install => sub {
     }
 };
 
-=head2 get
-
-Returns C<install_as>, to fulfill the requirements for the
-L<Bread::Board::Service> role.
-
-=cut
 
 sub get { shift->install_as }
 
 no Moose::Role;
 
+1;
+
+__END__
+=pod
+
+=head1 NAME
+
+Resource::Pack::Installable - role for installable resources
+
+=head1 VERSION
+
+version 0.03
+
+=head1 SYNOPSIS
+
+    package My::New::Resource;
+    use Moose;
+    with 'Resource::Pack::Installable';
+
+=head1 DESCRIPTION
+
+This role implements various common bits of functionality for all installable
+resources.
+
+=head1 ATTRIBUTES
+
+=head2 _install_to_dir
+
+This is passed to the constructor as C<install_to>, and holds a path relative
+to the C<_install_to_dir> of its parent, representing the directory to install
+this resource into.
+
+=head1 METHODS
+
+=head2 install_to_dir
+
+Returns the complete directory where this resource will be installed to. Can
+also be used to set the C<_install_to_dir> attribute.
+
+=head2 install_to_absolute
+
+Returns the target path that will be installed by this resource.
+
+=head2 install
+
+Default implementation, which copies the file at C<install_from_absolute> to
+C<install_to_absolute>.
+
+After this method is run (either the default implementation or an overridden
+implementation), it will call C<install> on each of the dependencies of this
+resource.
+
+=head2 get
+
+Returns C<install_as>, to fulfill the requirements for the
+L<Bread::Board::Service> role.
+
+=head1 SEE ALSO
+
+Please see those modules/websites for more information related to this module.
+
+=over 4
+
+=item *
+
+L<Resource::Pack|Resource::Pack>
+
+=back
+
 =head1 AUTHORS
 
-  Stevan Little <stevan.little@iinteractive.com>
+=over 4
 
-  Jesse Luehrs <doy at tozt dot net>
+=item *
+
+Stevan Little <stevan.little@iinteractive.com>
+
+=item *
+
+Jesse Luehrs <doy at tozt dot net>
+
+=back
 
 =head1 COPYRIGHT AND LICENSE
 
-This software is copyright (c) 2010 Infinity Interactive, Inc.
+This software is copyright (c) 2011 by Infinity Interactive, Inc.
 
 This is free software; you can redistribute it and/or modify it under
-the same terms as perl itself.
+the same terms as the Perl 5 programming language system itself.
 
 =cut
 
-1;

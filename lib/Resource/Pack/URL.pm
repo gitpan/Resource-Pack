@@ -1,10 +1,11 @@
 package Resource::Pack::URL;
 BEGIN {
-  $Resource::Pack::URL::VERSION = '0.02';
+  $Resource::Pack::URL::VERSION = '0.03';
 }
 use Moose;
 use MooseX::Types::Path::Class qw(File);
 use MooseX::Types::URI qw(Uri);
+# ABSTRACT: a URL resource
 
 use LWP::UserAgent;
 
@@ -12,40 +13,7 @@ with 'Resource::Pack::Installable',
      'Bread::Board::Service',
      'Bread::Board::Service::WithDependencies';
 
-=head1 NAME
 
-Resource::Pack::URL - a URL resource
-
-=head1 VERSION
-
-version 0.02
-
-=head1 SYNOPSIS
-
-    my $url = Resource::Pack::URL->new(
-        name => 'jquery',
-        url  => 'http://ajax.googleapis.com/ajax/libs/jquery/1.4.2/jquery.min.js',
-    );
-    $url->install;
-
-=head1 DESCRIPTION
-
-This class represents a URL to be downloaded and installed. It can also be
-added as a subresource to a L<Resource::Pack::Resource>. This class consumes
-the L<Resource::Pack::Installable>, L<Bread::Board::Service>, and
-L<Bread::Board::Service::WithDependencies> roles.
-
-=cut
-
-=head1 ATTRIBUTES
-
-=cut
-
-=head2 url
-
-Required, read-only attribute for the source URL.
-
-=cut
 
 has url => (
     is       => 'ro',
@@ -54,12 +22,6 @@ has url => (
     required => 1,
 );
 
-=head2 install_as
-
-The name to use for the installed file. Defaults to the filename portion of the
-C<url> attribute.
-
-=cut
 
 has install_as => (
     is      => 'rw',
@@ -69,26 +31,12 @@ has install_as => (
     default => sub { (shift->url->path_segments)[-1] },
 );
 
-=head1 METHODS
-
-=cut
-
-=head2 install_from_absolute
-
-Returns the entire source url.
-
-=cut
 
 sub install_from_absolute {
     my $self = shift;
     $self->url;
 }
 
-=head2 install
-
-Overridden to handle the downloading of the source file, before installing it.
-
-=cut
 
 sub install {
     my $self = shift;
@@ -109,19 +57,87 @@ sub install {
 __PACKAGE__->meta->make_immutable;
 no Moose;
 
+1;
+
+__END__
+=pod
+
+=head1 NAME
+
+Resource::Pack::URL - a URL resource
+
+=head1 VERSION
+
+version 0.03
+
+=head1 SYNOPSIS
+
+    my $url = Resource::Pack::URL->new(
+        name => 'jquery',
+        url  => 'http://ajax.googleapis.com/ajax/libs/jquery/1.4.2/jquery.min.js',
+    );
+    $url->install;
+
+=head1 DESCRIPTION
+
+This class represents a URL to be downloaded and installed. It can also be
+added as a subresource to a L<Resource::Pack::Resource>. This class consumes
+the L<Resource::Pack::Installable>, L<Bread::Board::Service>, and
+L<Bread::Board::Service::WithDependencies> roles.
+
+=head1 ATTRIBUTES
+
+=head2 url
+
+Required, read-only attribute for the source URL.
+
+=head2 install_as
+
+The name to use for the installed file. Defaults to the filename portion of the
+C<url> attribute.
+
+=head1 METHODS
+
+=head2 install_from_absolute
+
+Returns the entire source url.
+
+=head2 install
+
+Overridden to handle the downloading of the source file, before installing it.
+
+=head1 SEE ALSO
+
+Please see those modules/websites for more information related to this module.
+
+=over 4
+
+=item *
+
+L<Resource::Pack|Resource::Pack>
+
+=back
+
 =head1 AUTHORS
 
-  Stevan Little <stevan.little@iinteractive.com>
+=over 4
 
-  Jesse Luehrs <doy at tozt dot net>
+=item *
+
+Stevan Little <stevan.little@iinteractive.com>
+
+=item *
+
+Jesse Luehrs <doy at tozt dot net>
+
+=back
 
 =head1 COPYRIGHT AND LICENSE
 
-This software is copyright (c) 2010 Infinity Interactive, Inc.
+This software is copyright (c) 2011 by Infinity Interactive, Inc.
 
 This is free software; you can redistribute it and/or modify it under
-the same terms as perl itself.
+the same terms as the Perl 5 programming language system itself.
 
 =cut
 
-1;
